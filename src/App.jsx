@@ -462,38 +462,52 @@ export default function TransformerDashboard() {
                 </div>
                 <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14, marginTop: 4 }}>
                   Peso total: {calculos.reduce((s, c) => s + c.peso, 0).toFixed(0)} kg · {REGIMEN_LABELS[regimen]}
+                  <span style={{ marginLeft: 8, fontSize: 11 }}>· Rango ±20%</span>
                 </p>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <thead>
-                      <tr>
-                        {["ID", "Máquina", "Cliente", "Peso (kg)", "Régimen", "Hs Reales"].map((h) => (
-                          <th key={h} style={{ textAlign: "left", padding: "7px 11px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid rgba(226,232,240,0.7)", whiteSpace: "nowrap" }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {similares.map((m) => (
-                        <tr key={m.id} className="similar-row">
-                          <td style={{ padding: "9px 11px", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: "#f97316", fontFamily: "monospace" }}>{m.id}</span>
-                          </td>
-                          <td style={{ padding: "9px 11px", fontWeight: 500, color: "#1e293b", borderBottom: "1px solid rgba(241,245,249,0.8)", whiteSpace: "nowrap" }}>{m.nombre}</td>
-                          <td style={{ padding: "9px 11px", color: "#64748b", borderBottom: "1px solid rgba(241,245,249,0.8)", whiteSpace: "nowrap" }}>{m.cliente}</td>
-                          <td style={{ padding: "9px 11px", fontWeight: 600, color: "#374151", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>{m.peso_total_kg.toLocaleString()}</td>
-                          <td style={{ padding: "9px 11px", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
-                            <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 99, fontWeight: 600, whiteSpace: "nowrap", background: m.regimen === regimen ? "rgba(249,115,22,0.12)" : "rgba(148,163,184,0.12)", color: m.regimen === regimen ? "#ea580c" : "#94a3b8" }}>
-                              {REGIMEN_LABELS[m.regimen]}
-                            </span>
-                          </td>
-                          <td style={{ padding: "9px 11px", fontWeight: 700, color: "#1e293b", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
-                            {m.horas_reales.toLocaleString()} <span style={{ fontWeight: 400, color: "#94a3b8", fontSize: 11 }}>hrs</span>
-                          </td>
+                {similares.length === 0 ? (
+                  <div style={{ padding: "24px 0", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                    Ingresá peso en las bobinas para buscar máquinas similares
+                  </div>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          {["OT", "Tipo", "Peso P.A. (kg)", "Régimen", "Hs Reales", "Match"].map((h) => (
+                            <th key={h} style={{ textAlign: "left", padding: "7px 11px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid rgba(226,232,240,0.7)", whiteSpace: "nowrap" }}>{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {similares.map((m) => (
+                          <tr key={m.OT} className="similar-row">
+                            <td style={{ padding: "9px 11px", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#f97316", fontFamily: "monospace" }}>{m.OT}</span>
+                            </td>
+                            <td style={{ padding: "9px 11px", fontWeight: 500, color: "#1e293b", borderBottom: "1px solid rgba(241,245,249,0.8)", whiteSpace: "nowrap" }}>{m["Tipo de Máquina"]}</td>
+                            <td style={{ padding: "9px 11px", fontWeight: 600, color: "#374151", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>{Math.round(m["Peso Parte Activa"]).toLocaleString()}</td>
+                            <td style={{ padding: "9px 11px", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
+                              <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 99, fontWeight: 600, whiteSpace: "nowrap", background: m.mismoRegimen ? "rgba(249,115,22,0.12)" : "rgba(148,163,184,0.12)", color: m.mismoRegimen ? "#ea580c" : "#94a3b8" }}>
+                                {REGIMEN_LABELS[m.Regimen_Regulacion]}
+                              </span>
+                            </td>
+                            <td style={{ padding: "9px 11px", fontWeight: 700, color: "#1e293b", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
+                              {m["TOTAL OT"].toLocaleString()} <span style={{ fontWeight: 400, color: "#94a3b8", fontSize: 11 }}>hrs</span>
+                            </td>
+                            <td style={{ padding: "9px 11px", borderBottom: "1px solid rgba(241,245,249,0.8)" }}>
+                              {m.enRango && m.mismoRegimen
+                                ? <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "rgba(34,197,94,0.12)", color: "#16a34a" }}>●  Exacto</span>
+                                : m.enRango
+                                  ? <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "rgba(249,115,22,0.12)", color: "#f97316" }}>◐ Parcial</span>
+                                  : <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: "rgba(148,163,184,0.1)", color: "#94a3b8" }}>○ Lejano</span>
+                              }
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </GlassCard>
             </div>
           </div>

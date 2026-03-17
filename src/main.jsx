@@ -5,7 +5,7 @@ import App from './App.jsx'
 import './index.css'
 
 
-const SECRET_HASH = "831677c77f0d0143890252579294273f5507119f964a5728a47468132334812f";
+const SECRET_HASH = "BE61F00B0B3C1E4FFCF02370171677DB0856127544284AB41AAF7B01689E74D9";
 
 const renderApp = () => {
   createRoot(document.getElementById('root')).render(

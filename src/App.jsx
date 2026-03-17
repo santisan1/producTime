@@ -708,6 +708,62 @@ function ComparisonView({ machines, data, onClose }) {
   );
 }
 
+const LoginPage = ({ onLogin }) => {
+  const [pass, setPass] = useState("");
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (pass.trim() === "TTE123") {
+      onLogin();
+    } else {
+      setError(true);
+      setPass("");
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)",
+      fontFamily: "'DM Sans', sans-serif"
+    }}>
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+        <GlassCard style={{ padding: "40px", width: "360px", textAlign: "center", border: "1px solid rgba(249,115,22,0.2)" }}>
+          <div style={{ width: 60, height: 60, borderRadius: 16, background: "linear-gradient(135deg,#f97316,#ea580c)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 10px 25px rgba(249,115,22,0.3)" }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+          </div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#f8fafc", marginBottom: 8 }}>Cerebro PWA</h2>
+          <p style={{ fontSize: 13, color: "#64748b", marginBottom: 24 }}>Inteligencia Operativa TTE</p>
+
+          <form onSubmit={handleSubmit}>
+            <input
+              type="password"
+              autoFocus
+              placeholder="Contraseña de acceso"
+              value={pass}
+              onChange={(e) => { setPass(e.target.value); setError(false); }}
+              className="search-input"
+              style={{
+                width: "100%", padding: "12px", background: "rgba(15,23,42,0.6)",
+                textAlign: "center", fontSize: 16, letterSpacing: "4px"
+              }}
+            />
+            {error && <p style={{ color: "#fb7185", fontSize: 11, marginTop: 8, fontWeight: 600 }}>Clave incorrecta, intentá de nuevo.</p>}
+            <button type="submit" style={{
+              width: "100%", marginTop: 16, padding: "12px", borderRadius: 10, border: "none",
+              background: "linear-gradient(135deg,#f97316,#ea580c)", color: "white",
+              fontWeight: 700, cursor: "pointer", fontSize: 14
+            }}>
+              Ingresar al Sistema
+            </button>
+          </form>
+        </GlassCard>
+      </motion.div>
+    </div>
+  );
+};
 /* ═══════════════════════════════════════════════════════════════
    MAIN DASHBOARD COMPONENT
    ═══════════════════════════════════════════════════════════════ */
@@ -745,7 +801,14 @@ export default function TransformerDashboard() {
   // Analysis / Comparison modals
   const [analyzedMachine, setAnalyzedMachine] = useState(null);
   const [showComparison, setShowComparison] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    sessionStorage.getItem('auth_access') === 'true'
+  );
 
+  const handleLogin = () => {
+    sessionStorage.setItem('auth_access', 'true');
+    setIsAuthenticated(true);
+  };
   /* ─── Fetch ─── */
   useEffect(() => {
     let cancelled = false;
@@ -965,6 +1028,12 @@ export default function TransformerDashboard() {
 
   const CLASES = data?.catalogs?.winding_classes_normalized?.filter(c => ["AT", "BT", "MT", "RF"].includes(c)) || ["AT", "BT", "MT", "RF"];
   const REGIMENES = data?.catalogs?.regimes || ["Estandar", "AT_Bajo_Carga", "BT_Bajo_Carga"];
+  // Si no está autenticado, mostramos la pantalla de login
+  if (!isAuthenticated && window.location.hostname !== 'localhost') {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  // De acá para abajo sigue tu return normal con el Dashboard...
 
   /* ═══════════════════════════════════════════════════════════════
      RENDER

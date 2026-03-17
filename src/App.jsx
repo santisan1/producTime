@@ -1009,7 +1009,7 @@ export default function TransformerDashboard() {
               </div>
               <div>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Cerebro PWA</span>
-                <span style={{ fontSize: 10, color: "#475569", marginLeft: 6 }}>Inteligencia Operativa Industrial</span>
+                <span style={{ fontSize: 10, color: "#475569", marginLeft: 6 }}>Inteligencia Operativa Industrial TTE</span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

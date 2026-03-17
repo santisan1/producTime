@@ -4,8 +4,8 @@ import CryptoJS from 'crypto-js' // Importamos la librería
 import App from './App.jsx'
 import './index.css'
 
-// 1. La combinación secreta (Hash de vibe2024)
-const SECRET_HASH = "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5";
+
+const SECRET_HASH = "831677c77f0d0143890252579294273f5507119f964a5728a47468132334812f";
 
 const renderApp = () => {
   createRoot(document.getElementById('root')).render(

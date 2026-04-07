@@ -1032,7 +1032,7 @@ export default function TransformerDashboard() {
     if (referenceOT) ch.push({ id: "ref", label: `Ref: OT ${referenceOT.ot_id}`, rm: () => setReferenceOT(null) });
     windingFilters.forEach((_, i) => ch.push({ id: `wf-${i}`, label: `Devanado ${i + 1} filtro`, rm: () => setWindingFilters(p => p.filter((__, j) => j !== i)) }));
     return ch;
-  }, [selectedRegimes, powerRange, weightRange, deviationRange, windingCountFilter, hasRF, hasMT, hasTertiary, referenceOT, windingFilters]);
+  }, [selectedRegimes, powerRange, weightRange, deviationRange, windingCountFilter, hasRF, referenceOT, windingFilters]);
 
   /* ─── Loading / Error ─── */
   if (loading) return (

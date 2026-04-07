@@ -16,6 +16,10 @@ const ACT_COLORS = { AT: "#f97316", BT: "#3b82f6", MT: "#8b5cf6", RF: "#10b981",
 const ACT_LABELS = { AT: "Bobinado AT", BT: "Bobinado BT", MT: "Bobinado MT", RF: "Bobinado RF", montaje: "Montaje", nucleo: "Núcleo", conexiones: "Conexiones" };
 const POWER_PRESETS = [{ l: "0–10", a: 0, b: 10 }, { l: "10–40", a: 10, b: 40 }, { l: "40–80", a: 40, b: 80 }, { l: "80–120", a: 80, b: 120 }, { l: "120–200", a: 120, b: 200 }, { l: "200+", a: 200, b: 300 }];
 const DESVIO_ALERT = 15;
+const ACTIVITY_ORDER = ["BT", "AT", "MT", "RF", "nucleo", "montaje", "conexiones"];
+function estimateNucleoHours(sectionMm2, mva) {
+  return 0.000750577 * (sectionMm2 || 0) + 1.202764081 * mva + 28.79362813;
+}
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
 const fmt = (n, d = 1) => n != null && isFinite(n) ? Number(n).toFixed(d) : "—";
 const fmtK = (n) => n != null ? (n >= 1000 ? `${(n / 1000).toFixed(1)}T` : Math.round(n).toLocaleString()) : "—";
@@ -317,7 +321,7 @@ function OTAnalysisModal({ machine, data, onClose }) {
   const heatmapData = useMemo(() => {
     if (siblings.length === 0) return null;
     const allOTs = [machine, ...siblings].slice(0, 8);
-    const actCodes = ["BT", "AT", "MT", "RF", "montaje", "nucleo", "conexiones"];
+    const actCodes = ACTIVITY_ORDER;
     return { ots: allOTs, actCodes, matrix: actCodes.map(code => ({ code, label: ACT_LABELS[code] || code, values: allOTs.map(ot => { const a = (ot.activities || []).find(x => x.activity_code === code); return a?.deviation_pct ?? null; }) })) };
   }, [machine, siblings]);
 
@@ -362,7 +366,7 @@ function OTAnalysisModal({ machine, data, onClose }) {
             { l: "Peso Parte Activa", v: fmtK(id.active_part_weight_kg) + " kg", a: "#f97316" },
             { l: "Potencia Nominal", v: `${fmt(id.power_nominal_mva_est, 0)} MVA`, a: "#8b5cf6" },
             { l: "Horas Reales", v: `${fmt(tot.real_hours, 0)} hrs`, a: "#fb7185" },
-            { l: "Horas Teóricas (Bob.)", v: `${fmt(an.coefficient_estimates?.estimated_total_winding_hours, 0)} hrs`, a: "#3b82f6" },
+            { l: "Horas Teóricas (Bob.+Núcleo)", v: `${fmt((an.coefficient_estimates?.estimated_total_winding_hours || 0) + (an.coefficient_estimates?.estimated_nucleo_hours || 0), 0)} hrs`, a: "#3b82f6" },
             { l: "Desvío Total", v: <DevioBadge value={tot.deviation_pct} size="lg" />, a: Math.abs(tot.deviation_pct || 0) > DESVIO_ALERT ? "#fb7185" : "#34d399" },
             { l: "Devanados", v: `${id.winding_count || windings.length}`, a: "#0891b2" },
           ].map(kpi => (
@@ -376,7 +380,7 @@ function OTAnalysisModal({ machine, data, onClose }) {
         {/* Cumulative curve */}
         <GlassCard style={{ padding: "22px", marginBottom: 18 }}>
           <SectionTitle>Curva Acumulada — Historia del Desvío</SectionTitle>
-          <p style={{ fontSize: 11, color: "#475569", marginBottom: 12, marginTop: -6 }}>La línea teórica aplana tras bobinado (sin coeficiente para ensamble). El gap indica horas no modelizadas.</p>
+          <p style={{ fontSize: 11, color: "#475569", marginBottom: 12, marginTop: -6 }}>La línea teórica incluye bobinado y núcleo (sin coeficiente para montaje y conexiones). El gap indica horas no modelizadas.</p>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={cumData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" vertical={false} />
@@ -487,7 +491,7 @@ function OTAnalysisModal({ machine, data, onClose }) {
               <tfoot><tr>
                 <td style={{ padding: "9px 10px", fontWeight: 700, color: "#f8fafc", borderTop: "2px solid rgba(148,163,184,0.15)" }}>Total</td>
                 <td style={{ padding: "9px 10px", fontWeight: 700, color: "#fb7185", borderTop: "2px solid rgba(148,163,184,0.15)", fontFamily: "monospace" }}>{fmt(tot.real_hours, 0)}</td>
-                <td style={{ padding: "9px 10px", fontWeight: 700, color: "#3b82f6", borderTop: "2px solid rgba(148,163,184,0.15)", fontFamily: "monospace" }}>{fmt(an.coefficient_estimates?.estimated_total_winding_hours, 0)}</td>
+                <td style={{ padding: "9px 10px", fontWeight: 700, color: "#3b82f6", borderTop: "2px solid rgba(148,163,184,0.15)", fontFamily: "monospace" }}>{fmt((an.coefficient_estimates?.estimated_total_winding_hours || 0) + (an.coefficient_estimates?.estimated_nucleo_hours || 0), 0)}</td>
                 <td style={{ padding: "9px 10px", borderTop: "2px solid rgba(148,163,184,0.15)" }}><DevioBadge value={tot.deviation_pct} size="lg" /></td>
               </tr></tfoot>
             </table>
@@ -581,7 +585,7 @@ function OTAnalysisModal({ machine, data, onClose }) {
    COMPARISON VIEW (2–4 OTs side by side)
    ═══════════════════════════════════════════════════════════════ */
 function ComparisonView({ machines, data, onClose }) {
-  const activities = ["BT", "AT", "MT", "RF", "montaje", "nucleo", "conexiones"];
+  const activities = ACTIVITY_ORDER;
 
   useEffect(() => { const h = e => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); }, [onClose]);
 
@@ -622,7 +626,7 @@ function ComparisonView({ machines, data, onClose }) {
                 { l: "Peso PA (kg)", fn: m => fmtK(m.identity?.active_part_weight_kg) },
                 { l: "Devanados", fn: m => m.identity?.winding_count || (m.windings || []).length },
                 { l: "Horas Reales", fn: m => fmt(m.analytics?.totals?.real_hours, 0) },
-                { l: "Horas Teóricas (Bob.)", fn: m => fmt(m.analytics?.coefficient_estimates?.estimated_total_winding_hours, 0) },
+                { l: "Horas Teóricas (Bob.+Núcleo)", fn: m => fmt((m.analytics?.coefficient_estimates?.estimated_total_winding_hours || 0) + (m.analytics?.coefficient_estimates?.estimated_nucleo_hours || 0), 0) },
                 { l: "Desvío Total", fn: m => <DevioBadge value={m.analytics?.totals?.deviation_pct} /> },
                 { l: "Topología", fn: m => m.identity?.topology_type?.replace(/_/g, " ") || "—" },
               ].map(row => (
@@ -741,6 +745,7 @@ const LoginPage = ({ onLogin }) => {
             <input
               type="password"
               autoFocus
+              autoComplete="current-password"
               placeholder="Contraseña de acceso"
               value={pass}
               onChange={(e) => { setPass(e.target.value); setError(false); }}
@@ -786,8 +791,6 @@ export default function TransformerDashboard() {
   const [hoursRange, setHoursRange] = useState([0, 9000]);
   const [windingCountFilter, setWindingCountFilter] = useState(null);
   const [hasRF, setHasRF] = useState(null);
-  const [hasMT, setHasMT] = useState(null);
-  const [hasTertiary, setHasTertiary] = useState(null);
   const [windingFilters, setWindingFilters] = useState([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showWindingFilters, setShowWindingFilters] = useState(false);
@@ -817,6 +820,37 @@ export default function TransformerDashboard() {
         const res = await fetch("/cerebro_pwa_v3_definitive.json");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
+        // Enrich machines: nucleo estimation + activity reorder
+        if (json.machines) {
+          for (const m of json.machines) {
+            const mva = m.identity?.power_nominal_mva_est || 0;
+            const section = m.identity?.core_section_mm2 || 0;
+            const nuclEst = estimateNucleoHours(section, mva);
+            if (m.activities) {
+              m.activities.sort((a, b) => {
+                const ia = ACTIVITY_ORDER.indexOf(a.activity_code);
+                const ib = ACTIVITY_ORDER.indexOf(b.activity_code);
+                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+              });
+              let cumTheo = 0, cumReal = 0;
+              for (const act of m.activities) {
+                if (act.activity_code === "nucleo") {
+                  act.theoretical_hours = nuclEst;
+                  if (act.real_hours > 0) {
+                    act.deviation_pct = +((act.real_hours - nuclEst) / nuclEst * 100).toFixed(2);
+                  }
+                }
+                cumReal += act.real_hours || 0;
+                if (act.theoretical_hours != null) cumTheo += act.theoretical_hours;
+                act.cumulative_real_hours = cumReal;
+                act.cumulative_theoretical_hours = cumTheo > 0 ? cumTheo : null;
+              }
+            }
+            if (m.analytics?.coefficient_estimates) {
+              m.analytics.coefficient_estimates.estimated_nucleo_hours = nuclEst;
+            }
+          }
+        }
         if (!cancelled) setData(json);
       } catch (err) { if (!cancelled) setFetchError(err.message); }
       finally { if (!cancelled) setLoading(false); }
@@ -902,8 +936,6 @@ export default function TransformerDashboard() {
       if (windingCountFilter != null && (id.winding_count || (m.windings || []).length) !== windingCountFilter) return false;
       // Has RF / MT / Tertiary
       if (hasRF != null && fi.has_rf !== hasRF) return false;
-      if (hasMT != null && fi.has_mt !== hasMT) return false;
-      if (hasTertiary != null && fi.has_tertiary !== hasTertiary) return false;
       // Winding filters (flexible: each block must be satisfied by at least one winding)
       if (windingFilters.length > 0) {
         const ws = m.windings || [];
@@ -920,7 +952,7 @@ export default function TransformerDashboard() {
       }
       return true;
     });
-  }, [data, debouncedSearch, selectedRegimes, powerRange, weightRange, deviationRange, hoursRange, windingCountFilter, hasRF, hasMT, hasTertiary, windingFilters]);
+  }, [data, debouncedSearch, selectedRegimes, powerRange, weightRange, deviationRange, hoursRange, windingCountFilter, hasRF, windingFilters]);
 
   // Compute match scores
   const scoredMachines = useMemo(() => {
@@ -953,7 +985,7 @@ export default function TransformerDashboard() {
   const clearFilters = useCallback(() => {
     setSearchText(""); setSelectedRegimes([]); setPowerRange([0, 250]); setWeightRange([0, 100]);
     setDeviationRange([-100, 100]); setHoursRange([0, 9000]); setWindingCountFilter(null);
-    setHasRF(null); setHasMT(null); setHasTertiary(null); setWindingFilters([]); setReferenceOT(null); setRefOTInput("");
+    setHasRF(null); setWindingFilters([]); setReferenceOT(null); setRefOTInput("");
   }, []);
 
   const useAsTemplate = useCallback(() => {
@@ -997,8 +1029,6 @@ export default function TransformerDashboard() {
     if (deviationRange[0] > -100 || deviationRange[1] < 100) ch.push({ id: "dev", label: `Desvío ${deviationRange[0]}% ~ ${deviationRange[1]}%`, rm: () => setDeviationRange([-100, 100]) });
     if (windingCountFilter != null) ch.push({ id: "wc", label: `${windingCountFilter} devanados`, rm: () => setWindingCountFilter(null) });
     if (hasRF != null) ch.push({ id: "rf", label: hasRF ? "Con RF" : "Sin RF", rm: () => setHasRF(null) });
-    if (hasMT != null) ch.push({ id: "mt", label: hasMT ? "Con MT" : "Sin MT", rm: () => setHasMT(null) });
-    if (hasTertiary != null) ch.push({ id: "ter", label: hasTertiary ? "Con Terciario" : "Sin Terciario", rm: () => setHasTertiary(null) });
     if (referenceOT) ch.push({ id: "ref", label: `Ref: OT ${referenceOT.ot_id}`, rm: () => setReferenceOT(null) });
     windingFilters.forEach((_, i) => ch.push({ id: `wf-${i}`, label: `Devanado ${i + 1} filtro`, rm: () => setWindingFilters(p => p.filter((__, j) => j !== i)) }));
     return ch;
@@ -1175,8 +1205,6 @@ export default function TransformerDashboard() {
                         </div>
                       </div>
                       <TriToggle label="Con RF" value={hasRF} onChange={setHasRF} />
-                      <TriToggle label="Con MT" value={hasMT} onChange={setHasMT} />
-                      <TriToggle label="Con Terciario" value={hasTertiary} onChange={setHasTertiary} />
                     </div>
                   )}
                 </GlassCard>
